@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DC Street Closure Geocoder - Network Graph Version (July 1, 2025, 3:15 PM)</title>
+    <link rel="stylesheet" href="styles.css">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Franklin, Franklin-fallback, sans-serif; /* WPDS meta font */
+            color: #2e3440;
+            line-height: 1.6;
+            background-color: #f8f9fb;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            font-size: 2rem;
+            font-weight: 700; /* WPDS bold weight */
+            font-family: Postoni, Postoni-fallback, serif; /* WPDS headline font */
+            color: #000;
+            margin-bottom: 20px;
+        }
+        
+        .app-layout {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (min-width: 992px) {
+            .app-layout {
+                flex-direction: row;
+            }
+        }
+        
+        .panel {
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+        
+        .input-panel {
+            flex: 1;
+            min-width: 300px;
+        }
+        
+        .output-panel {
+            flex: 2;
+        }
+        
+        h2 {
+            font-size: 1.5rem; /* WPDS font size 150 */
+            font-weight: 700; /* WPDS bold weight */
+            font-family: Franklin, Franklin-fallback, sans-serif; /* WPDS subhead font */
+            color: #000;
+            margin-bottom: 15px;
+        }
+        
+        h3 {
+            font-size: 1.25rem; /* WPDS font size 125 */
+            font-weight: 700; /* WPDS bold weight */
+            font-family: Franklin, Franklin-fallback, sans-serif; /* WPDS subhead font */
+            color: #000;
+            margin-bottom: 15px;
+        }
+        
+        #segment-input {
+            width: 100%;
+            min-height: 150px;
+            padding: 12px;
+            border: 1px solid #d8dee9;
+            border-radius: 4px;
+            font-size: 1rem; /* WPDS font size 100 */
+            resize: none;
+            font-family: inherit;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem; /* WPDS font size 087 */
+            font-weight: 700; /* WPDS bold weight */
+            transition: all 0.2s ease;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .btn-primary {
+            background-color: #000; /* WPDS primary color */
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #333;
+        }
+        
+        .btn-secondary {
+            background-color: #fff;
+            color: #000;
+            border: 1px solid #000; /* WPDS isOutline property */
+        }
+        
+        .btn-secondary:hover {
+            background-color: #f5f5f5;
+        }
+
+        .btn-warning {
+            background-color: #ff7d00; /* Orangey color from WPDS */
+            color: white;
+        }
+        
+        .btn-warning:hover {
+            background-color: #ff9933;
+        }
+
+        .btn-success {
+            background-color: #2a8d40; /* Similar to WPDS success color */
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #2d9645;
+        }
+        
+        #map {
+            height: 400px;
+            width: 100%;
+            border: 1px solid #d8dee9;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .status-message {
+            padding: 10px;
+            margin-top: 15px;
+            border-radius: 4px;
+            font-size: 0.875rem; /* WPDS font size 087 */
+        }
+        
+        .status-info {
+            background-color: #e5e9f0;
+            color: #4c566a;
+        }
+        
+        .status-success {
+            background-color: #e0f2e9;
+            color: #2e7d32;
+        }
+        
+        .status-error {
+            background-color: #ffefef;
+            color: #bf616a;
+        }
+        
+        .status-warning {
+            background-color: #fff3e0;
+            color: #ef6c00;
+        }
+        
+        #log-container {
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: #f1f3f7;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.75rem; /* WPDS font size 075 */
+            margin-top: 15px;
+            display: none; /* Hide log container */
+        }
+        
+        .failure-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #ffefef;
+            border-left: 3px solid #bf616a;
+            border-radius: 4px;
+        }
+        
+        .failure-item h3 {
+            margin-top: 0;
+            font-size: 1rem;
+            color: #bf616a;
+        }
+
+        .failure-item .action-buttons {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        #failures-container {
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .successful-segments {
+            max-height: 300px;
+            overflow-y: auto;
+            background-color: #f1f3f7;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+
+        .successful-segments ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .successful-segments li {
+            margin-bottom: 5px;
+            font-size: 0.875rem; /* WPDS font size 087 */
+        }
+        
+        .failed-segments-area {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid #d8dee9;
+            border-radius: 4px;
+            font-size: 0.875rem; /* WPDS font size 087 */
+            font-family: inherit;
+            margin-bottom: 15px;
+            background-color: #fff3e0;
+            color: #333;
+        }
+
+        /* Map Editor Mode Styles */
+        .drawing-instructions {
+            margin-top: 10px;
+            padding: 15px;
+            background-color: #ffe7ba;
+            border-left: 4px solid #ff7d00;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .drawing-instructions.active {
+            display: block;
+        }
+
+        .drawing-controls {
+            margin-top: 15px;
+            display: none;
+            gap: 10px;
+        }
+
+        .drawing-controls.active {
+            display: flex;
+        }
+
+        /* Drawing mode notification banner */
+        .editor-mode-banner {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            right: 0;
+            margin: 0 auto;
+            width: 80%;
+            max-width: 500px;
+            z-index: 1000;
+            background-color: rgba(255, 125, 0, 0.9);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            display: none;
+        }
+
+        .editor-mode-banner.active {
+            display: block;
+        }
+
+        /* Animation for disconnected points */
+        @keyframes pulse {
+            0% { opacity: 0.5; }
+            50% { opacity: 1; }
+            100% { opacity: 0.5; }
+        }
+        
+        .disconnected-point {
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        /* Success badge for replaced segments */
+        .replaced-badge {
+            background-color: #2a8d40;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            margin-left: 5px;
+        }
+        
+        /* Animation for manual segments */
+        @keyframes highlight-pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        .manual-segment {
+            animation: highlight-pulse 2s infinite ease-in-out;
+        }
+        
+        /* Fixed segment styling */
+        .fixed-segment {
+            background-color: #e0f2e9 !important;
+            border-left: 3px solid #2a8d40 !important;
+        }
+        
+        .replaced-badge {
+            background-color: #2a8d40 !important;
+            color: white !important;
+            padding: 3px 8px !important;
+            border-radius: 10px !important;
+            font-size: 0.8rem !important;
+            margin-left: 10px !important;
+            display: inline-block !important;
+        }
+        
+        .success-message {
+            padding: 5px 0;
+        }
+        
+        /* Hide buttons we don't need */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DC Street Closure Geocoder - Network Graph Version</h1>
+        
+        <div class="app-layout">
+            <div class="panel input-panel">
+                <h2>Input your streets</h2>
+                <textarea id="segment-input" placeholder="Enter street segments, one per line. Example:
+14th Street from U Street to Independence Avenue, NW
+Pennsylvania Avenue from 9th Street to 7th Street, NW"></textarea>
+                
+                <div class="button-group">
+                    <button id="process-btn" class="btn btn-primary">Process Segments</button>
+                </div>
+                
+                <div id="status-message" class="status-message status-info">
+                    Enter street segments above and click Process.
+                </div>
+                
+                <div id="log-container"></div>
+            </div>
+            
+            <div class="panel output-panel">
+                <h2>Confirm and repair</h2>
+                <div id="map"></div>
+                <!-- Editor Mode Banner -->
+                <div id="editor-mode-banner" class="editor-mode-banner">
+                    MAP EDITOR MODE: Click on the map to add connection points
+                </div>
+                
+                <div class="drawing-instructions" id="drawing-instructions">
+                    <p><strong>Map Editor Mode Active:</strong> Click on the map to add connection points to bridge the gaps between disconnected segments.</p>
+                    <p>Continue adding points to create a path that connects the highlighted segments. When finished, click "Complete & Save Segment" below.</p>
+                </div>
+                
+                <div class="drawing-controls" id="drawing-controls">
+                    <button id="complete-drawing-btn" class="btn btn-success">Complete & Save Segment</button>
+                    <button id="cancel-drawing-btn" class="btn btn-secondary">Cancel</button>
+                </div>
+                
+                <div class="button-group">
+                    <button id="export-geojson-btn" class="btn btn-primary">Export GeoJSON</button>
+                    <button id="update-fixed-btn" class="btn btn-secondary">Refresh Fixed Segments</button>
+                </div>
+                
+                <h3>These segments failed</h3>
+                <div id="failures-container">
+                    <p>No disconnected segments to report.</p>
+                </div>
+                
+                <h3>Successful segments</h3>
+                <div id="successful-segments" class="successful-segments">
+                    <ul id="successful-segments-list">
+                        <!-- This will be populated with successful segments -->
+                        <li>No segments processed yet.</li>
+                    </ul>
+                </div>
+                
+                <h3>Failed segments text</h3>
+                <textarea id="failed-segments-text" class="failed-segments-area" readonly></textarea>
+                <button id="copy-failed-btn" class="btn btn-secondary">Copy Failed Segments</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="update-timestamp.js"></script>
+    
+    <script>
+        // Publicly expose updateItemToFixed function
+        function updateItemToFixed(item) {
+            console.log("Updating item to fixed state:", item);
+            if (!item) {
+                console.error("Cannot update null item");
+                return false;
+            }
+            
+            // Add fixed styling
+            item.style.backgroundColor = '#e0f2e9';
+            item.style.borderLeft = '3px solid #2a8d40';
+            item.classList.add('fixed-segment');
+            
+            // Record this street key as fixed if available
+            const streetKey = item.getAttribute('data-street-key');
+            if (streetKey && window.manuallyFixedKeys) {
+                window.manuallyFixedKeys.add(streetKey);
+            }
+            
+            // Update the header with a fixed badge
+            const header = item.querySelector('h3');
+            if (header && !header.querySelector('.replaced-badge')) {
+                const badge = document.createElement('span');
+                badge.className = 'replaced-badge';
+                badge.textContent = 'FIXED';
+                badge.style.marginLeft = '10px';
+                badge.style.backgroundColor = '#2a8d40';
+                badge.style.color = 'white';
+                badge.style.padding = '3px 8px';
+                badge.style.borderRadius = '10px';
+                badge.style.fontSize = '0.8rem';
+                header.appendChild(badge);
+            }
+            
+            // Replace any buttons with success message
+            const actionButtons = item.querySelector('.action-buttons');
+            if (actionButtons) {
+                const successMsg = document.createElement('div');
+                successMsg.className = 'success-message';
+                successMsg.innerHTML = `
+                    <span style="color: #2a8d40; font-weight: bold;">✓ Manually Fixed</span> 
+                    <span style="color: #666; font-size: 0.8rem; margin-left: 5px;">${new Date().toLocaleTimeString()}</span>
+                `;
+                
+                // Replace buttons with success message
+                actionButtons.innerHTML = '';
+                actionButtons.appendChild(successMsg);
+            }
+            
+            return true;
+        }
+        
+        // Make updateItemToFixed globally available
+        window.updateItemToFixed = updateItemToFixed;
+    </script>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- DC Street Network Graph - MUST LOAD FIRST -->
+    <script src="street-network.js"></script>
+    
+    <!-- Load From Serialized -->
+    <script src="load-from-serialized.js"></script>
+    
+    <!-- Direct Network Loader - Bypasses regular loaders -->
+    <script src="direct-network-loader.js"></script>
+    
+    <!-- Manual Intersection Finding -->
+    <script src="manual-intersection.js"></script>
+    
+    <!-- Manual Segment Editor -->
+    <script src="manual-segment-editor.js"></script>
+    
+    <!-- Update Trackers -->
+    <script src="update-trackers.js"></script>
+    
+    <!-- Simple Item Tracker -->
+    <script src="simple-item-tracker.js"></script>
+    
+    <!-- Track Fixed Items -->
+    <script src="track-fixed-items.js"></script>
+    
+    <!-- Selective Fix UI -->
+    <script src="selective-fix-ui.js"></script>
+    
+    <!-- Force Fix UI -->
+    <script src="force-fix-ui.js"></script>
+    
+    <!-- Direct Fix UI -->
+    <script src="direct-fix-ui.js"></script>
+    
+    <!-- UI Helpers for Fixed Segments -->
+    <script src="fix-ui-helpers.js"></script>
+    
+    <!-- Display Manual Segments -->
+    <script src="display-manual-segments.js"></script>
+    
+    <!-- Display Failures -->
+    <script src="display-failures.js"></script>
+    
+    <!-- Enhanced Display Functions -->
+    <script src="enhanced-display-functions.js"></script>
+    
+    <!-- Enhanced Export -->
+    <script src="enhanced-export.js"></script>
+    
+    <!-- Export GeoJSON -->
+    <script src="export-geojson.js"></script>
+    
+    <!-- CSS Injector for Fixed Styles -->
+    <script src="css-injector.js"></script>
+    
+    <!-- Force Update UI -->
+    <script src="force-update-ui.js"></script>
+    
+    <!-- Debug Tools -->
+    <script src="debug-tools.js"></script>
+    <script src="network-test.js"></script>
+    <script src="verify-network-data.js"></script>
+    <script src="debug-network.js"></script>
+    
+    <!-- App Functions -->
+    <script src="app-functions.js"></script>
+    
+    <script>
+        // Global variables
+        let map;
+        let cartoLayer;
+        let osmLayer;
+        let segmentLayers = [];
+        let disconnectedLayers = [];
+        let manualConnectionLayers = [];
+        let drawingMode = false;
+        let currentDrawingPath = [];
+        let currentStreetKey = null;
+        let currentDisplayName = null; // Track display name of segment being edited
+        
+        // Log message to UI
+        function logMessage(message) {
+            const logContainer = document.getElementById('log-container');
+            if (logContainer) {
+                const timestamp = new Date().toLocaleTimeString();
+                const entry = document.createElement('div');
+                entry.textContent = `[${timestamp}] ${message}`;
+                logContainer.appendChild(entry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+            console.log(message);
+        }
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            logMessage("Initializing application...");
+            
+            // Update timestamp
+            updateTimestamp();
+            
+            // Initialize map
+            initializeMap();
+            
+            // Auto-load network data
+            setTimeout(() => {
+                logMessage("Auto-loading network data...");
+                loadNetworkData();
+            }, 500);
+            
+            // Set up event listeners
+            document.getElementById('process-btn').addEventListener('click', processSegments);
+            document.getElementById('export-geojson-btn').addEventListener('click', enhancedExportGeoJSON);
+            document.getElementById('complete-drawing-btn').addEventListener('click', completeDrawing);
+            document.getElementById('cancel-drawing-btn').addEventListener('click', cancelDrawing);
+            document.getElementById('copy-failed-btn').addEventListener('click', copyFailedSegments);
+            document.getElementById('update-fixed-btn').addEventListener('click', function() {
+                try {
+                    console.log("Refreshing fixed segments using force update...");
+                    
+                    // Get all manually fixed street keys
+                    const fixedKeys = [];
+                    
+                    // First check streetNetwork.manualConnections
+                    if (streetNetwork.manualConnections) {
+                        streetNetwork.manualConnections.forEach((connection, id) => {
+                            if (connection.streetKey) {
+                                fixedKeys.push(connection.streetKey);
+                            }
+                        });
+                    }
+                    
+                    // Also check lastResults.manuallyFixed set
+                    if (streetNetwork.lastResults && streetNetwork.lastResults.manuallyFixed) {
+                        streetNetwork.lastResults.manuallyFixed.forEach(key => {
+                            if (!fixedKeys.includes(key)) {
+                                fixedKeys.push(key);
+                            }
+                        });
+                    }
+                    
+                    // Also check window.manuallyFixedKeys set
+                    if (window.manuallyFixedKeys) {
+                        window.manuallyFixedKeys.forEach(key => {
+                            if (!fixedKeys.includes(key)) {
+                                fixedKeys.push(key);
+                            }
+                        });
+                    }
+                    
+                    console.log(`Found ${fixedKeys.length} fixed keys to refresh`);
+                    
+                    // Update each fixed segment
+                    let updated = 0;
+                    
+                    // Try to update using our force update function
+                    if (window.forceUpdateFailureItem) {
+                        fixedKeys.forEach(key => {
+                            try {
+                                if (window.forceUpdateFailureItem(null, key)) {
+                                    updated++;
+                                }
+                            } catch (e) {
+                                console.error(`Error updating ${key}:`, e);
+                            }
+                        });
+                    }
+                    
+                    if (updated > 0) {
+                        updateStatus(`Updated ${updated} fixed segments`, "success");
+                    } else {
+                        // Fall back to other methods if nothing was updated
+                        try { 
+                            selectiveUpdateFixedSegments(); 
+                            updateStatus("Attempted to refresh fixed segments using alternative method", "info");
+                        } catch (e) { 
+                            console.error(e); 
+                            updateStatus("Error refreshing segments, check console", "error");
+                        }
+                    }
+                } catch (e) {
+                    console.error("Error refreshing:", e);
+                    updateStatus("Attempted to refresh fixed segments", "info");
+                }
+            });
+            
+            // Load empty input
+            document.getElementById('segment-input').value = "";
+                
+            logMessage("Initialization complete. Auto-loading network data.");
+        });
+        
+        // Initialize the map
+        function initializeMap() {
+            logMessage("Initializing map...");
+            
+            try {
+                // Create map centered on DC
+                map = L.map('map', {
+                    center: [38.9072, -77.0369],
+                    zoom: 13
+                });
+                
+                logMessage("Map created successfully");
+                
+                // Add CartoDB Positron basemap
+                cartoLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd',
+                    maxZoom: 20
+                }).addTo(map);
+                
+                // Create OpenStreetMap layer (not added initially)
+                osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxZoom: 19
+                });
+                
+                // Setup map click handler for drawing mode
+                map.on('click', handleMapClick);
+                
+                updateStatus("Map initialized. Enter street segments and click Process.");
+                logMessage("Map initialized successfully");
+            } catch (error) {
+                console.error("Error initializing map:", error);
+                updateStatus("Failed to initialize map: " + error.message, "error");
+                logMessage("Error initializing map: " + error.message);
+            }
+        }
+        
+        // Handle map clicks when in drawing mode, manual intersection mode, or manual segment editor mode
+        function handleMapClick(e) {
+            // Check which mode we're in
+            if (manualIntersectionMode) {
+                handleManualIntersectionClick(e);
+                return;
+            }
+            
+            if (manualSegmentEditorMode) {
+                handleManualSegmentEditorClick(e);
+                return;
+            }
+            
+            if (!drawingMode) return;
+            
+            // Get the clicked coordinates
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+            
+            console.log(`Map clicked at: [${lat}, ${lng}] in drawing mode`);
+            
+            try {
+                // Create a new node at these coordinates
+                const nodeId = streetNetwork.createNode([lng, lat]);
+                console.log(`Created node: ${nodeId}`);
+                
+                // Add to the current drawing path
+                currentDrawingPath.push(nodeId);
+                console.log(`Current path: ${currentDrawingPath.join(', ')}`);
+                
+                // Show a marker at this point
+                const marker = L.circleMarker([lat, lng], {
+                    radius: 5,
+                    color: '#FF9800',
+                    fillColor: '#FF9800',
+                    fillOpacity: 0.7,
+                    weight: 2
+                }).addTo(map);
+                
+                // If we have more than one point, draw a line
+                if (currentDrawingPath.length > 1) {
+                    const previousNodeId = currentDrawingPath[currentDrawingPath.length - 2];
+                    const previousNode = streetNetwork.nodes.get(previousNodeId);
+                    
+                    if (previousNode) {
+                        const line = L.polyline([
+                            [previousNode.coordinates[1], previousNode.coordinates[0]],
+                            [lat, lng]
+                        ], {
+                            color: '#FF9800',
+                            weight: 3,
+                            dashArray: '5, 5',
+                            opacity: 0.7
+                        }).addTo(map);
+                        
+                        manualConnectionLayers.push(line);
+                    }
+                }
+                
+                manualConnectionLayers.push(marker);
+                
+                // Update the UI to show we've added a point
+                updateStatus(`Added point #${currentDrawingPath.length} to the manual connection`, "info");
+            } catch (error) {
+                console.error('Error adding point to map:', error);
+                updateStatus(`Error adding point: ${error.message}`, "error");
+            }
+        }
+        
+        // Start drawing mode for a specific street
+        function startDrawingMode(streetKey, displayName) {
+            drawingMode = true;
+            currentStreetKey = streetKey;
+            currentDisplayName = displayName; // Save the display name for later use
+            currentDrawingPath = [];
+            
+            // Show drawing instructions and controls
+            document.getElementById('drawing-instructions').classList.add('active');
+            document.getElementById('drawing-controls').classList.add('active');
+            document.getElementById('editor-mode-banner').classList.add('active');
+            
+            // Disable process button while drawing
+            document.getElementById('process-btn').disabled = true;
+            
+            // Update status with more helpful instructions
+            updateStatus(`Map Editor Mode active: Click points along ${displayName} to create a path`, "warning");
+            
+            // Update drawing instructions with more specific guidance
+            const drawingInstructions = document.getElementById('drawing-instructions');
+            drawingInstructions.innerHTML = `
+                <p><strong>Map Editor Mode Active:</strong> You are now tracing ${displayName}</p>
+                <p>Click on the map to add connection points to create a path for this street segment:</p>
+                <ol>
+                    <li>Click at the starting point of your segment</li>
+                    <li>Click along the path of the street to create intermediate points</li>
+                    <li>Click at the ending point to complete the path</li>
+                    <li>When finished, click "Complete & Save Segment" below</li>
+                </ol>
+                <p>Your manually traced segment will appear in purple on the map.</p>
+            `;
+            
+            // Find the disconnected segments to highlight them
+            highlightDisconnectedSegments(streetKey);
+        }
+        
+        // Highlight the disconnected segments for a specific street
+        function highlightDisconnectedSegments(streetKey) {
+            // Clear any existing highlight layers
+            clearHighlightLayers();
+            
+            const segmentData = streetNetwork.disconnectedSegments.get(streetKey);
+            if (!segmentData) return;
+            
+            // Highlight each component's endpoint nodes
+            segmentData.components.forEach((component, index) => {
+                for (const nodeId of component) {
+                    const node = streetNetwork.nodes.get(nodeId);
+                    if (!node) continue;
+                    
+                    // Create a pulsing marker for this node
+                    const marker = L.circleMarker([node.coordinates[1], node.coordinates[0]], {
+                        radius: 8,
+                        color: '#F44336',
+                        fillColor: '#F44336',
+                        fillOpacity: 0.5,
+                        weight: 2,
+                        className: 'disconnected-point'
+                    }).addTo(map);
+                    
+                    // Add tooltip with node info
+                    marker.bindTooltip(`Node: ${nodeId}<br>Component: ${index + 1}`, {
+                        className: 'tooltip-custom'
+                    });
+                    
+                    manualConnectionLayers.push(marker);
+                }
+            });
+        }
+        
+        // Clear highlight layers
+        function clearHighlightLayers() {
+            // Remove all manual connection layers
+            manualConnectionLayers.forEach(layer => {
+                map.removeLayer(layer);
+            });
+            manualConnectionLayers = [];
+        }
+        
+        // Complete the drawing and create a connection
+        function completeDrawing() {
+            console.log('Completing drawing with path:', currentDrawingPath);
+            
+            if (!drawingMode) {
+                updateStatus("Not in drawing mode", "error");
+                return;
+            }
+            
+            if (!currentStreetKey) {
+                updateStatus("No street selected for editing", "error");
+                return;
+            }
+            
+            if (!currentDrawingPath || currentDrawingPath.length < 1) {
+                updateStatus("Cannot complete drawing: no path created", "error");
+                return;
+            }
+            
+            // If we only have one point, we can't create a connection
+            if (currentDrawingPath.length < 2) {
+                updateStatus("Please add at least one more point to create a connection", "warning");
+                return;
+            }
+            
+            // Create a manual connection
+            const connectionId = streetNetwork.addManualConnection(currentStreetKey, currentDrawingPath);
+            
+            if (connectionId) {
+                // Replace the disconnected segments with this manual connection
+                const success = streetNetwork.replaceDisconnectedSegments(currentStreetKey, connectionId);
+                
+                if (success) {
+                    updateStatus(`Successfully created manual connection and replaced disconnected segments`, "success");
+                    
+                    // Add the manually created segment to the export features
+                    if (streetNetwork.lastResults) {
+                        // Make sure the manual connection is included in the export
+                        if (!streetNetwork.lastResults.manualConnections) {
+                            streetNetwork.lastResults.manualConnections = [];
+                        }
+                        streetNetwork.lastResults.manualConnections.push({
+                            streetKey: currentStreetKey,
+                            connectionId: connectionId,
+                            path: currentDrawingPath
+                        });
+                        
+                        // Mark this street as manually fixed in the results
+                        if (!streetNetwork.lastResults.manuallyFixed) {
+                            streetNetwork.lastResults.manuallyFixed = new Set();
+                        }
+                        streetNetwork.lastResults.manuallyFixed.add(currentStreetKey);
+                    }
+                    
+        // Store the current streetKey to use for UI updates
+                    const fixedStreetKey = currentStreetKey;
+                    const displayName = currentDisplayName;
+                    
+                    // Exit drawing mode
+                    exitDrawingMode();
+                    
+                    // Display the manually traced segment on the map immediately
+                    displayManualSegments();
+                    
+                    // Update UI in multiple ways to ensure it gets updated
+                    console.log("🔄 Updating UI for fixed segment: " + fixedStreetKey);
+                    
+                    // For temporary segments, directly find the element we need to update
+                    if (fixedStreetKey && fixedStreetKey.startsWith('temp_segment_')) {
+                        console.log("🔍 Looking for failure item for temporary segment");
+                        // Find by display name which is more reliable for temp segments
+                        const allItems = document.querySelectorAll('.failure-item');
+                        let foundItem = null;
+                        
+                        for (const item of allItems) {
+                            const header = item.querySelector('h3');
+                            if (header && header.textContent && 
+                                displayName && header.textContent.includes(displayName)) {
+                                foundItem = item;
+                                console.log(`✅ Found item by display name: ${displayName}`);
+                                break;
+                            }
+                        }
+                        
+                        if (foundItem) {
+                            try {
+                                // Force this item ID into the global map
+                                if (window.failureItemsMap && foundItem.id) {
+                                    window.failureItemsMap.set(fixedStreetKey, foundItem.id);
+                                }
+                                
+                                // Add data attribute for consistency
+                                foundItem.setAttribute('data-street-key', fixedStreetKey);
+                                
+                                // Now use our regular force update
+                                if (window.forceUpdateFailureItem) {
+                                    window.forceUpdateFailureItem(foundItem.id, fixedStreetKey);
+                                } else if (window.applyAggressiveStyling) {
+                                    window.applyAggressiveStyling(foundItem);
+                                }
+                                
+                                // Also directly apply styling for certainty
+                                foundItem.classList.add('fixed-segment');
+                                foundItem.style.backgroundColor = '#e0f2e9';
+                                foundItem.style.borderLeft = '3px solid #2a8d40';
+                                
+                                // Update badge
+                                const header = foundItem.querySelector('h3');
+                                if (header && !header.querySelector('.replaced-badge')) {
+                                    const badge = document.createElement('span');
+                                    badge.className = 'replaced-badge';
+                                    badge.textContent = 'FIXED';
+                                    badge.style.marginLeft = '10px';
+                                    badge.style.backgroundColor = '#2a8d40';
+                                    badge.style.color = 'white';
+                                    badge.style.padding = '3px 8px';
+                                    badge.style.borderRadius = '10px';
+                                    badge.style.fontSize = '0.8rem';
+                                    header.appendChild(badge);
+                                }
+                                
+                                // Replace any buttons with success message
+                                const actionButtons = foundItem.querySelector('.action-buttons');
+                                if (actionButtons) {
+                                    const successMsg = document.createElement('div');
+                                    successMsg.className = 'success-message';
+                                    successMsg.innerHTML = `
+                                        <span style="color: #2a8d40; font-weight: bold;">✓ Manually Fixed</span> 
+                                        <span style="color: #666; font-size: 0.8rem; margin-left: 5px;">${new Date().toLocaleTimeString()}</span>
+                                    `;
+                                    actionButtons.innerHTML = '';
+                                    actionButtons.appendChild(successMsg);
+                                }
+                            } catch (e) {
+                                console.error("❌ Error directly styling found item:", e);
+                            }
+                        } else {
+                            console.error("❌ Could not find item by display name: " + displayName);
+                        }
+                    } else {
+                        // Regular non-temp key update flow
+                        // 1. First try to use window.forceUpdateFailureItem which is our most aggressive method
+                        try {
+                            // Get the item ID from the map if available
+                            const itemId = window.failureItemsMap ? window.failureItemsMap.get(fixedStreetKey) : null;
+                            
+                            if (window.forceUpdateFailureItem) {
+                                // Try with ID if we have it
+                                if (itemId) {
+                                    window.forceUpdateFailureItem(itemId, fixedStreetKey);
+                                    console.log(`✅ Applied forced styling to item: ${itemId}`);
+                                } else {
+                                    // Try with just street key
+                                    window.forceUpdateFailureItem(null, fixedStreetKey);
+                                    console.log(`✅ Applied forced styling using street key: ${fixedStreetKey}`);
+                                }
+                                
+                                // Force a refresh of all fixed items after a short delay
+                                setTimeout(() => {
+                                    if (window.refreshAllFixedItems) {
+                                        window.refreshAllFixedItems();
+                                    }
+                                    if (window.injectFixedStyles) {
+                                        window.injectFixedStyles();
+                                    }
+                                }, 500);
+                            }
+                        } catch (e) {
+                            console.error("❌ Error in aggressive styling:", e);
+                        }
+                    }
+                    
+                    // Always do these regardless of which path we took
+                    // 1. Still update the full display as a backup
+                    enhancedDisplayFailures(streetNetwork.lastResults);
+                    enhancedDisplaySuccessfulSegments(streetNetwork.lastResults);
+                    
+                    // 2. Inject CSS styles after a delay for good measure - BUT ONLY ONCE
+                    setTimeout(() => {
+                        if (window.injectFixedStyles) {
+                            window.injectFixedStyles();
+                        }
+                        // Only do a single refresh to avoid loops
+                        if (window.refreshAllFixedItems) {
+                            window.refreshAllFixedItems();
+                        }
+                    }, 1000);
+                    
+                    // Enable export button
+                    document.getElementById('export-geojson-btn').disabled = false;
+                } else {
+                    updateStatus(`Created manual connection but failed to replace segments`, "error");
+                }
+            } else {
+                updateStatus(`Failed to create manual connection`, "error");
+            }
+        }
+        
+        // Cancel drawing mode
+        function cancelDrawing() {
+            exitDrawingMode();
+            updateStatus("Drawing cancelled", "info");
+        }
+        
+        // Exit drawing mode
+        function exitDrawingMode() {
+            drawingMode = false;
+            currentStreetKey = null;
+            currentDisplayName = null; // Reset display name
+            currentDrawingPath = [];
+            
+            // Hide drawing UI
+            document.getElementById('drawing-instructions').classList.remove('active');
+            document.getElementById('drawing-controls').classList.remove('active');
+            document.getElementById('editor-mode-banner').classList.remove('active');
+            
+            // Clear highlights
+            clearHighlightLayers();
+            
+            // Re-enable process button
+            document.getElementById('process-btn').disabled = false;
+        }
+        
+        // Update status message
+        function updateStatus(message, type = "info") {
+            const statusElement = document.getElementById('status-message');
+            
+            if (statusElement) {
+                statusElement.textContent = message;
+                statusElement.className = `status-message status-${type}`;
+            }
+        }
+        
+        // Load network data
+        function loadNetworkData() {
+            updateStatus("Loading street network data...", "info");
+            logMessage("Loading street network data...");
+            
+            // Try using direct-network-loader.js function first
+            if (typeof directLoadNetworkData === 'function') {
+                logMessage("Using direct network loader...");
+                directLoadNetworkData()
+                    .then(success => {
+                        if (success) {
+                            updateStatus("Ready to process street segments", "success");
+                            logMessage("Street network data loaded successfully");
+                            document.getElementById('process-btn').disabled = false;
+                            
+                            // Run diagnostic tests to verify data
+                            if (typeof debugNetworkLoad === 'function') {
+                                debugNetworkLoad();
+                            }
+                        } else {
+                            // If direct load fails, try backup method
+                            logMessage("Direct load failed, trying backup method...");
+                            if (typeof createMinimalTestNetwork === 'function') {
+                                createMinimalTestNetwork(streetNetwork);
+                            }
+                            updateStatus("Ready to process street segments", "success");
+                            document.getElementById('process-btn').disabled = false;
+                        }
+                    })
+                    .catch(error => {
+                        logMessage(`Error loading network: ${error.message}`);
+                        if (typeof createMinimalTestNetwork === 'function') {
+                            createMinimalTestNetwork(streetNetwork);
+                        }
+                        updateStatus("Ready to process street segments", "success");
+                        document.getElementById('process-btn').disabled = false;
+                    });
+            } else {
+                // Fallback to minimal test network
+                logMessage("Direct loader not available, using test network");
+                if (typeof createMinimalTestNetwork === 'function') {
+                    createMinimalTestNetwork(streetNetwork);
+                }
+                updateStatus("Ready to process street segments", "success");
+                document.getElementById('process-btn').disabled = false;
+            }
+        }
+        
+        // Process segments from the input text area
+        function processSegments() {
+            if (!streetNetwork.loaded) {
+                // If not loaded, try to load first
+                loadNetworkData();
+                setTimeout(() => {
+                    processSegmentsInternal();
+                }, 1000);
+                return;
+            }
+            
+            processSegmentsInternal();
+        }
+        
+        function processSegmentsInternal() {
+            const inputText = document.getElementById('segment-input').value.trim();
+            if (!inputText) {
+                updateStatus("Please enter street segments to process", "error");
+                return;
+            }
+            
+            updateStatus("Processing segments...", "info");
+            logMessage(`Processing ${inputText.split('\n').length} segments...`);
+            
+            // Clear previous results
+            clearLayers();
+            
+            // Process the segments
+            const segmentLines = inputText.split('\n');
+            const results = streetNetwork.processSegments(segmentLines);
+            
+            // Store the results
+            streetNetwork.lastResults = results;
+            
+            // Ensure we have a manuallyFixed set
+            if (!results.manuallyFixed) {
+                results.manuallyFixed = new Set();
+            }
+            
+            // Display the results
+            displayResults(results);
+            
+            // Display any failures using enhanced function
+            enhancedDisplayFailures(results);
+            
+            // Add successful segments to the text-only list using enhanced function
+            enhancedDisplaySuccessfulSegments(results);
+            
+            // Update click trackers for the new failure items
+            updateTrackersAfterProcessing();
+            
+            // Display any manually traced segments
+            displayManualSegments();
+            
+            // Update UI for only actually fixed segments
+            selectiveUpdateFixedSegments();
+            
+            // Enable export button
+            document.getElementById('export-geojson-btn').disabled = false;
+            
+            // Update status
+            updateStatus(`Processed ${results.features.length} segments successfully, ${results.failures.length} failures`, 
+                results.failures.length > 0 ? "warning" : "success");
+        }
+        
+        // Display successful segments in the text-only list
+        function displaySuccessfulSegments(results) {
+            const listElement = document.getElementById('successful-segments-list');
+            
+            if (!results || !results.features || results.features.length === 0) {
+                listElement.innerHTML = '<li>No successful segments to display</li>';
+                return;
+            }
+            
+            listElement.innerHTML = '';
+            
+            results.features.forEach(feature => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${feature.properties.main_street} from ${feature.properties.from_street} to ${feature.properties.to_street}`;
+                listElement.appendChild(listItem);
+            });
+            
+            // Also add manually fixed segments if available
+            if (results.manualConnections && results.manualConnections.length > 0) {
+                results.manualConnections.forEach(connection => {
+                    // Find the original failure to get its display name
+                    const failure = results.failures.find(f => f.streetKey === connection.streetKey);
+                    if (failure) {
+                        const listItem = document.createElement('li');
+                        listItem.textContent = `${failure.input} (Manually Fixed)`;
+                        listItem.style.color = '#2a8d40';
+                        listItem.style.fontWeight = 'bold';
+                        listElement.appendChild(listItem);
+                    }
+                });
+            }
+        }
+        
+        // Display processed segment results on the map
+        function displayResults(results) {
+            if (!results || !results.features || results.features.length === 0) {
+                logMessage("No successful segments to display");
+                return;
+            }
+            
+            logMessage(`Displaying ${results.features.length} processed segments`);
+            
+            // Display each feature
+            results.features.forEach(feature => {
+                const layer = L.geoJSON(feature, {
+                    style: {
+                        color: '#4CAF50',
+                        weight: 4,
+                        opacity: 0.8
+                    },
+                    onEachFeature: (feature, layer) => {
+                        // Add a popup with segment info
+                        const popupContent = `
+                            <strong>${feature.properties.main_street}</strong><br>
+                            From: ${feature.properties.from_street}<br>
+                            To: ${feature.properties.to_street}
+                        `;
+                        layer.bindPopup(popupContent);
+                    }
+                }).addTo(map);
+                
+                segmentLayers.push(layer);
+            });
+            
+            // Display disconnected features
+            if (results.disconnectedFeatures && results.disconnectedFeatures.length > 0) {
+                logMessage(`Displaying ${results.disconnectedFeatures.length} disconnected segment groups`);
+                
+                results.disconnectedFeatures.forEach(featureCollection => {
+                    // Skip if the street has been manually fixed
+                    const streetKey = featureCollection.properties.streetKey;
+                    if (results.manuallyFixed && results.manuallyFixed.has(streetKey)) {
+                        logMessage(`Skipping display of manually fixed street: ${streetKey}`);
+                        return;
+                    }
+                    
+                    const layer = L.geoJSON(featureCollection, {
+                        style: {
+                            color: '#F44336',
+                            weight: 4,
+                            opacity: 0.8,
+                            dashArray: '5, 5'
+                        },
+                        onEachFeature: (feature, layer) => {
+                            // Add a popup with segment info
+                            const popupContent = `
+                                <strong>${feature.properties.main_street}</strong> (Disconnected)<br>
+                                Component: ${feature.properties.component + 1} of ${featureCollection.properties.componentCount}<br>
+                                From: ${feature.properties.from_street}<br>
+                                To: ${feature.properties.to_street}
+                            `;
+                            layer.bindPopup(popupContent);
+                        }
+                    }).addTo(map);
+                    
+                    disconnectedLayers.push(layer);
+                });
+            }
+            
+            // Fit the map to show all segments
+            const allLayers = [...segmentLayers, ...disconnectedLayers];
+            if (allLayers.length > 0) {
+                const group = L.featureGroup(allLayers);
+                map.fitBounds(group.getBounds(), { padding: [20, 20] });
+            }
+        }
+        
+        // Clear all map layers
+        function clearLayers() {
+            // Remove segment layers
+            segmentLayers.forEach(layer => {
+                map.removeLayer(layer);
+            });
+            segmentLayers = [];
+            
+            // Remove disconnected layers
+            disconnectedLayers.forEach(layer => {
+                map.removeLayer(layer);
+            });
+            disconnectedLayers = [];
+            
+            // Remove manual connection layers (temporary drawing ones)
+            manualConnectionLayers.forEach(layer => {
+                map.removeLayer(layer);
+            });
+            manualConnectionLayers = [];
+            
+            // Remove manual segment layers (finalized manual segments)
+            if (window.manualSegmentLayers) {
+                window.manualSegmentLayers.forEach(layer => {
+                    map.removeLayer(layer);
+                });
+                window.manualSegmentLayers = [];
+            }
+        }
+        
+        // Export all processed segments as GeoJSON
+        function exportGeoJSON() {
+            // Check if we have any data to export
+            if (!streetNetwork.lastResults) {
+                logMessage("Checking for street network results to export...");
+                updateStatus("No processed data to export. Process segments first.", "error");
+                return;
+            }
+            
+            logMessage(`Preparing to export ${streetNetwork.lastResults.features.length} features...`);
+            
+            try {
+                // Get all features for export
+                const exportData = streetNetwork.getExportFeatures(streetNetwork.lastResults);
+                
+                if (!exportData.features || exportData.features.length === 0) {
+                    updateStatus("No features to export", "error");
+                    return;
+                }
+                
+                // Create a downloadable link
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", "dc-street-closures.geojson");
+                document.body.appendChild(downloadAnchorNode);
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+                
+                updateStatus(`GeoJSON exported successfully with ${exportData.features.length} features`, "success");
+            } catch (error) {
+                console.error("Error exporting GeoJSON:", error);
+                updateStatus(`Export error: ${error.message}`, "error");
+            }
+        }
+        
+        // Copy the failed segments to clipboard
+        function copyFailedSegments() {
+            const textArea = document.getElementById('failed-segments-text');
+            if (!textArea.value) {
+                updateStatus("No failed segments to copy", "error");
+                return;
+            }
+            
+            textArea.select();
+            document.execCommand('copy');
+            
+            updateStatus("Failed segments copied to clipboard", "success");
+        }
+        
+        // Make sure streetNetwork has the methods we need
+        if (!streetNetwork.isSegmentReplaced || typeof streetNetwork.isSegmentReplaced !== 'function') {
+            // Define the isSegmentReplaced function if it doesn't exist
+            streetNetwork.isSegmentReplaced = function(streetKey) {
+                // Check if the results have a manuallyFixed set that contains this streetKey
+                if (streetNetwork.lastResults && 
+                    streetNetwork.lastResults.manuallyFixed && 
+                    streetNetwork.lastResults.manuallyFixed.has(streetKey)) {
+                    return true;
+                }
+                // Otherwise check if the replacedSegments set has this key
+                return streetNetwork.replacedSegments && streetNetwork.replacedSegments.has(streetKey);
+            };
+            console.log("Added missing isSegmentReplaced function to streetNetwork");
+        }
+        
+        // Function to directly update a failure item based on street key and display name
+        function directlyUpdateFailureItem(streetKey, displayName) {
+            if (!streetKey) return false;
+            
+            console.log(`Trying to update failure item for ${streetKey} (${displayName})`);
+            
+            try {
+                // First try to find by street key via data attribute
+                const itemByKey = document.querySelector(`[data-street-key="${streetKey}"]`);
+                if (itemByKey) {
+                    console.log(`Found item by street key: ${streetKey}`);
+                    if (typeof updateItemUI === 'function') {
+                        updateItemUI(itemByKey);
+                    } else if (typeof updateItemToFixed === 'function') {
+                        updateItemToFixed(itemByKey);
+                    }
+                    return true;
+                }
+                
+                // Next, try by display name in the h3
+                if (displayName) {
+                    const items = document.querySelectorAll('.failure-item');
+                    for (const item of items) {
+                        const header = item.querySelector('h3');
+                        if (header && header.textContent && header.textContent.includes(displayName)) {
+                            console.log(`Found item by display name: ${displayName}`);
+                            if (typeof updateItemUI === 'function') {
+                                updateItemUI(item);
+                            } else if (typeof updateItemToFixed === 'function') {
+                                updateItemToFixed(item);
+                            }
+                            return true;
+                        }
+                    }
+                }
+                
+                console.log(`Could not find item for ${streetKey} (${displayName})`);
+                return false;
+            } catch (e) {
+                console.error(`Error updating failure item: ${e.message}`);
+                return false;
+            }
+        }
+        
+        // Make directlyUpdateFailureItem globally available
+        window.directlyUpdateFailureItem = directlyUpdateFailureItem;
+        
+        // Add createNode function if it doesn't exist
+        if (!streetNetwork.createNode || typeof streetNetwork.createNode !== 'function') {
+            streetNetwork.createNode = function(coordinates) {
+                // Generate a unique node ID
+                const nodeId = 'manual_node_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+                
+                // Add node to the nodes Map
+                streetNetwork.nodes.set(nodeId, {
+                    id: nodeId,
+                    coordinates: coordinates
+                });
+                
+                console.log(`Created new node ${nodeId} at coordinates [${coordinates}]`);
+                return nodeId;
+            };
+            console.log("Added missing createNode function to streetNetwork");
+        }
+        
+        // Add addManualConnection function if it doesn't exist
+        if (!streetNetwork.addManualConnection || typeof streetNetwork.addManualConnection !== 'function') {
+            streetNetwork.addManualConnection = function(streetKey, nodePath) {
+                if (!nodePath || nodePath.length < 2) {
+                    console.error("Cannot create manual connection: invalid node path");
+                    return null;
+                }
+                
+                // Generate connection ID
+                const connectionId = 'manual_connection_' + Date.now();
+                
+                // Create edges between consecutive nodes
+                const edges = [];
+                for (let i = 0; i < nodePath.length - 1; i++) {
+                    const edgeId = `${connectionId}_edge_${i}`;
+                    const sourceNode = streetNetwork.nodes.get(nodePath[i]);
+                    const targetNode = streetNetwork.nodes.get(nodePath[i + 1]);
+                    
+                    if (!sourceNode || !targetNode) {
+                        console.error(`Cannot create edge: nodes not found`);
+                        continue;
+                    }
+                    
+                    // Create the edge
+                    const edge = {
+                        id: edgeId,
+                        source: nodePath[i],
+                        target: nodePath[i + 1],
+                        coordinates: [sourceNode.coordinates, targetNode.coordinates],
+                        manual: true,
+                        streetKey: streetKey
+                    };
+                    
+                    // Add to edges map
+                    streetNetwork.edges.set(edgeId, edge);
+                    edges.push(edgeId);
+                    
+                    // Update graph adjacency list
+                    if (!streetNetwork.graph.has(nodePath[i])) {
+                        streetNetwork.graph.set(nodePath[i], []);
+                    }
+                    if (!streetNetwork.graph.has(nodePath[i + 1])) {
+                        streetNetwork.graph.set(nodePath[i + 1], []);
+                    }
+                    
+                    streetNetwork.graph.get(nodePath[i]).push(edgeId);
+                    streetNetwork.graph.get(nodePath[i + 1]).push(edgeId);
+                }
+                
+                // Store the manual connection
+                if (!streetNetwork.manualConnections) {
+                    streetNetwork.manualConnections = new Map();
+                }
+                
+                streetNetwork.manualConnections.set(connectionId, {
+                    id: connectionId,
+                    streetKey: streetKey,
+                    nodePath: nodePath,
+                    edges: edges
+                });
+                
+                console.log(`Created manual connection ${connectionId} for street ${streetKey} with ${edges.length} edges`);
+                return connectionId;
+            };
+            console.log("Added missing addManualConnection function to streetNetwork");
+        }
+        
+        // Add replaceDisconnectedSegments function if it doesn't exist
+        if (!streetNetwork.replaceDisconnectedSegments || typeof streetNetwork.replaceDisconnectedSegments !== 'function') {
+            streetNetwork.replaceDisconnectedSegments = function(streetKey, connectionId) {
+                // Mark the street as replaced
+                if (!streetNetwork.replacedSegments) {
+                    streetNetwork.replacedSegments = new Set();
+                }
+                streetNetwork.replacedSegments.add(streetKey);
+                
+                // If using lastResults, mark it there too
+                if (streetNetwork.lastResults) {
+                    if (!streetNetwork.lastResults.manuallyFixed) {
+                        streetNetwork.lastResults.manuallyFixed = new Set();
+                    }
+                    streetNetwork.lastResults.manuallyFixed.add(streetKey);
+                }
+                
+                console.log(`Marked street ${streetKey} as replaced by connection ${connectionId}`);
+                return true;
+            };
+            console.log("Added missing replaceDisconnectedSegments function to streetNetwork");
+        }
+        
+        // Override the displayFailures function to handle our UI
+        window.displayFailures = function(results) {
+            if (!results || !results.failures || results.failures.length === 0) {
+                document.getElementById('failures-container').innerHTML = '<p>No disconnected segments to report.</p>';
+                document.getElementById('failed-segments-text').value = '';
+                return;
+            }
+            
+            logMessage(`Displaying ${results.failures.length} failures`);
+            
+            // Debug: Log the structure of the failures
+            if (results.failures.length > 0) {
+                console.log('Sample failure object structure:', results.failures[0]);
+            }
+            
+            const failuresContainer = document.getElementById('failures-container');
+            failuresContainer.innerHTML = '';
+            
+            // Also collect the raw text for the failed segments
+            let failedSegmentsText = '';
+            
+            // Placeholder check pattern
+            const isPlaceholder = (text) => /Main Street from Cross\d to Cross\d/.test(text);
+            
+            results.failures.forEach((failure, index) => {
+                const failureDiv = document.createElement('div');
+                failureDiv.className = 'failure-item';
+                
+                const streetKey = failure.streetKey;
+                // Check if the segment has been manually fixed
+                const isReplaced = results.manuallyFixed && results.manuallyFixed.has(streetKey);
+                
+                // Get the display text for the segment
+                let displayText = '';
+                
+                // Check for the original input
+                if (failure.originalInput) {
+                    displayText = failure.originalInput;
+                } else if (failure.inputText) {
+                    displayText = failure.inputText;
+                } else if (failure.input && !isPlaceholder(failure.input)) {
+                    displayText = failure.input;
+                } 
+                // Extract from intersection error
+                else if (failure.error && failure.error.includes('intersection between')) {
+                    const match = failure.error.match(/between\s+([^\s]+(?:\s+[^\s]+)*)\s+and\s+([^\s]+(?:\s+[^\s]+)*)/i);
+                    if (match && match.length >= 3) {
+                        const mainStreet = match[1];
+                        const crossStreet = match[2];
+                        displayText = `${mainStreet} from ? to ${crossStreet}`;
+                    }
+                }
+                // Extract from parse error, but avoid the placeholder
+                else if (failure.error && failure.error.includes('Could not parse')) {
+                    const match = failure.error.match(/['"]([^'"]+)['"]/);
+                    if (match && match[1] && !isPlaceholder(match[1])) {
+                        displayText = match[1];
+                    } else {
+                        // Last resort - use the streetKey if it's not a placeholder-like value
+                        const formattedKey = streetKey.replace(/_/g, ' ');
+                        if (!isPlaceholder(formattedKey)) {
+                            displayText = formattedKey;
+                        } else {
+                            displayText = 'Unknown segment';
+                        }
+                    }
+                }
+                
+                // Fallback
+                if (!displayText) {
+                    displayText = 'Unknown segment';
+                }
+                
+                // Create the header with a badge if replaced
+                const header = document.createElement('h3');
+                header.textContent = displayText;
+                
+                if (isReplaced) {
+                    const badge = document.createElement('span');
+                    badge.className = 'replaced-badge';
+                    badge.textContent = 'FIXED';
+                    header.appendChild(badge);
+                }
+                
+                failureDiv.appendChild(header);
+                
+                // Add the error message
+                const message = document.createElement('p');
+                message.textContent = failure.error || 'Unknown error';
+                failureDiv.appendChild(message);
+                
+                // Add action buttons if not replaced
+                if (!isReplaced) {
+                    const actionButtons = document.createElement('div');
+                    actionButtons.className = 'action-buttons';
+                    
+                    // Create the "Open Map Editor" button
+                    const editButton = document.createElement('button');
+                    editButton.className = 'btn btn-warning';
+                    editButton.textContent = 'Open Map Editor and Trace Yourself';
+                    editButton.addEventListener('click', function() {
+                        startDrawingMode(streetKey, displayText);
+                    });
+                    
+                    actionButtons.appendChild(editButton);
+                    failureDiv.appendChild(actionButtons);
+                    
+                    // Add to the failed segments text area - use the display text
+                    if (displayText !== 'Unknown segment') {
+                        failedSegmentsText += displayText + '\n';
+                    }
+                }
+                
+                failuresContainer.appendChild(failureDiv);
+            });
+            
+            // Update the failed segments text area
+            document.getElementById('failed-segments-text').value = failedSegmentsText.trim();
+        };
+        
+        // Make the function available to other scripts
+        window.startDrawingMode = startDrawingMode;
+    </script>
+</body>
+</html>
